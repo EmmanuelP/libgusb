@@ -1106,6 +1106,56 @@ g_usb_device_interrupt_transfer	(GUsbDevice    *device,
 	return helper.ret != -1;
 }
 
+/**
+ * g_usb_device_reset_endpoint:
+ * @device: a #GUsbDevice
+ * @endpoint: the address of a valid endpoint to communicate with
+ * @timeout: timeout timeout (in millseconds) that this function should wait
+ * before giving up due to no response being received. For an unlimited
+ * timeout, use 0.
+ * @error: a #GError, or %NULL
+ *
+ * Reset an endpoint. Reset is achieved by halting the endpoint, then clearing the alt condition.
+ *
+ * Return value: %TRUE on success
+ *
+ * Since: 0.3.3
+ */
+gboolean
+g_usb_device_reset_endpoint (GUsbDevice *device,
+			     guint8 endpoint,
+			     guint timeout,
+			     GError **error)
+{
+	gint rc;
+
+	/* Set endpoint in halt condition */
+	rc = libusb_control_transfer (device->priv->handle,
+				      LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_STANDARD | LIBUSB_RECIPIENT_ENDPOINT,
+				      LIBUSB_REQUEST_SET_FEATURE,
+				      0, /* Value: 0 = endpoint_halt */
+				      endpoint,
+				      NULL, 0,
+				      timeout);
+	if (rc != LIBUSB_SUCCESS) {
+		g_set_error (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_INTERNAL,
+			     "Failed to set endpoint %u in halt condition: %s",
+			     endpoint, g_usb_strerror (rc));
+		return FALSE;
+	}
+
+	/* Clear halt condtion on the endpoint, effectivelly resetting the pipe */
+	rc = libusb_clear_halt (device->priv->handle, endpoint);
+	if (rc != LIBUSB_SUCCESS) {
+		g_set_error (error, G_USB_DEVICE_ERROR, G_USB_DEVICE_ERROR_INTERNAL,
+			     "Failed to clear halt condition on endpoint %u: %s",
+			     endpoint, g_usb_strerror (rc));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 typedef struct {
 	GCancellable		*cancellable;
 	gulong			 cancellable_id;

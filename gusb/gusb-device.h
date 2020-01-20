@@ -250,6 +250,11 @@ gboolean		 g_usb_device_interrupt_transfer (GUsbDevice	*device,
 							 GCancellable	*cancellable,
 							 GError		**error);
 
+gboolean 		g_usb_device_reset_endpoint 	(GUsbDevice 	*device,
+							 guint8		 endpoint,
+							 guint 		 timeout,
+							 GError 	**error);
+
 /* async */
 
 void		 g_usb_device_control_transfer_async	(GUsbDevice	*device,
